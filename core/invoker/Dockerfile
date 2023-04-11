@@ -38,6 +38,7 @@ RUN curl -sSL -o docker-${DOCKER_VERSION}.tgz https://download.docker.com/linux/
 
 ADD build/distributions/invoker.tar ./
 
+COPY wasmruntime /
 COPY init.sh /
 RUN chmod +x init.sh
 

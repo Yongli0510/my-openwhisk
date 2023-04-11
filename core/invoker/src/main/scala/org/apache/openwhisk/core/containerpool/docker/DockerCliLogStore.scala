@@ -43,6 +43,7 @@ object DockerCliLogStoreProvider extends LogStoreProvider {
 
 class DockerCliLogStore(system: ActorSystem)(implicit log: Logging) extends DockerToActivationLogStore(system) {
   private val client = new ExtendedDockerClient()(system.dispatcher)(log, system)
+
   override def collectLogs(transid: TransactionId,
                            user: Identity,
                            activation: WhiskActivation,
@@ -56,7 +57,7 @@ class DockerCliLogStore(system: ActorSystem)(implicit log: Logging) extends Dock
 
 class ExtendedDockerClient(dockerHost: Option[String] = None)(executionContext: ExecutionContext)(implicit log: Logging,
                                                                                                   as: ActorSystem)
-    extends DockerClientWithFileAccess(dockerHost)(executionContext)
+  extends DockerClientWithFileAccess(dockerHost)(executionContext)
     with DockerApiWithFileAccess
     with WindowsDockerClient {
 
@@ -67,15 +68,6 @@ class ExtendedDockerClient(dockerHost: Option[String] = None)(executionContext: 
   def collectLogs(id: ContainerId, since: Instant, until: Instant)(implicit transid: TransactionId): Future[String] = {
     //Add a slight buffer to account for delay writes of logs
     val end = until.plusSeconds(logTimeSpanMargin.toSeconds)
-    runCmd(
-      Seq(
-        "logs",
-        id.asString,
-        "--since",
-        since.getEpochSecond.toString,
-        "--until",
-        end.getEpochSecond.toString,
-        "--timestamps"),
-      waitForLogs)
+    Future.successful("")
   }
 }

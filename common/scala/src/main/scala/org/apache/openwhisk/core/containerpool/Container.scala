@@ -46,8 +46,10 @@ import scala.util.{Failure, Success}
 case class ContainerId(asString: String) {
   require(asString.nonEmpty, "ContainerId must not be empty")
 }
+
 case class ContainerAddress(host: String, port: Int = 8080) {
   require(host.nonEmpty, "ContainerIp must not be empty")
+
   def asString() = s"${host}:${port}"
 }
 
@@ -95,7 +97,7 @@ trait Container {
     closeConnections(toClose)
   }
 
-  /** Dual of halt. NOT thread-safe - caller must synchronize.*/
+  /** Dual of halt. NOT thread-safe - caller must synchronize. */
   def resume()(implicit transid: TransactionId): Future[Unit] = {
     httpConnection = Some(openConnections(containerHttpTimeout, containerHttpMaxConcurrent))
     Future.successful({})
@@ -121,7 +123,13 @@ trait Container {
       logLevel = InfoLevel)
     containerHttpMaxConcurrent = maxConcurrent
     containerHttpTimeout = timeout
-    val body = JsObject("value" -> initializer)
+    val json_initializer = entity match {
+      case Some(value) =>
+        val annotations = JsObject("annotations" -> value.annotations.toJsObject)
+        JsObject(initializer.fields ++ annotations.fields)
+      case None => initializer
+    }
+    val body = JsObject("value" -> json_initializer)
     callContainer(
       "/init",
       body,
@@ -218,10 +226,10 @@ trait Container {
    *
    * Note that `http.post` will not throw an exception, hence the generated Future cannot fail.
    *
-   * @param path relative path to use in the http request
-   * @param body body to send
-   * @param timeout timeout of the request
-   * @param retry whether or not to retry the request
+   * @param path       relative path to use in the http request
+   * @param body       body to send
+   * @param timeout    timeout of the request
+   * @param retry      whether or not to retry the request
    * @param reschedule throw a reschedule error in case of connection failure
    */
   protected def callContainer(path: String,
@@ -239,12 +247,13 @@ trait Container {
       conn
     }
     http
-      .post(path, body, maxResponse, truncation, retry, reschedule)
+      .post(s"/${id.asString}${path}", body, maxResponse, truncation, retry, reschedule)
       .map { response =>
         val finished = Instant.now()
         RunResult(Interval(started, finished), response)
       }
   }
+
   private def openConnections(timeout: FiniteDuration, maxConcurrent: Int) = {
     if (Container.config.akkaClient) {
       new AkkaContainerClient(addr.host, addr.port, timeout, 1024)
@@ -252,12 +261,13 @@ trait Container {
       new ApacheBlockingContainerClient(s"${addr.host}:${addr.port}", timeout, maxConcurrent)
     }
   }
+
   private def closeConnections(toClose: Option[ContainerClient]): Future[Unit] = {
     toClose.map(_.close()).getOrElse(Future.successful(()))
   }
 
   /** This is so that we can easily log the container id during ContainerPool.logContainerStart().
-   *  Null check is here since some tests use stub[Container] so id is null during those tests. */
+   * Null check is here since some tests use stub[Container] so id is null during those tests. */
   override def toString() = if (id == null) "no-container-id" else id.toString
 }
 
@@ -285,6 +295,7 @@ case class Interval(start: Instant, end: Instant) {
 
 case class RunResult(interval: Interval, response: Either[ContainerConnectionError, ContainerResponse]) {
   def ok = response.exists(_.ok)
+
   def toBriefString = response.fold(_.toString, _.toString)
 }
 

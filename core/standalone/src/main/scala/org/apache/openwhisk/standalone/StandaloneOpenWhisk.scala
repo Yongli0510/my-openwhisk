@@ -44,7 +44,9 @@ import scala.util.{Failure, Success, Try}
 import KafkaLauncher._
 
 class Conf(arguments: Seq[String]) extends ScallopConf(Conf.expandAllMode(arguments)) {
+
   import StandaloneOpenWhisk.preferredPgPort
+
   banner(StandaloneOpenWhisk.banner)
   footer("\nOpenWhisk standalone server")
   StandaloneOpenWhisk.gitInfo.foreach(g => version(s"Git Commit - ${g.commitId}"))
@@ -171,33 +173,34 @@ object StandaloneOpenWhisk extends SLF4JLogging {
       |  \___\/ tm           |_|
     """.stripMargin
 
-  val defaultRuntime = """{
-     |  "runtimes": {
-     |    "nodejs": [
-     |      {
-     |        "kind": "nodejs:14",
-     |        "default": true,
-     |        "image": {
-     |          "prefix": "openwhisk",
-     |          "name": "action-nodejs-v14",
-     |          "tag": "latest"
-     |        },
-     |        "deprecated": false,
-     |        "attached": {
-     |          "attachmentName": "codefile",
-     |          "attachmentType": "text/plain"
-     |        },
-     |        "stemCells": [
-     |          {
-     |            "count": 1,
-     |            "memory": "256 MB"
-     |          }
-     |        ]
-     |      }
-     |    ]
-     |  }
-     |}
-     |""".stripMargin
+  val defaultRuntime =
+    """{
+      |  "runtimes": {
+      |    "nodejs": [
+      |      {
+      |        "kind": "nodejs:14",
+      |        "default": true,
+      |        "image": {
+      |          "prefix": "openwhisk",
+      |          "name": "action-nodejs-v14",
+      |          "tag": "latest"
+      |        },
+      |        "deprecated": false,
+      |        "attached": {
+      |          "attachmentName": "codefile",
+      |          "attachmentType": "text/plain"
+      |        },
+      |        "stemCells": [
+      |          {
+      |            "count": 1,
+      |            "memory": "256 MB"
+      |          }
+      |        ]
+      |      }
+      |    ]
+      |  }
+      |}
+      |""".stripMargin
 
   val gitInfo: Option[GitInfo] = loadGitInfo()
 
@@ -223,6 +226,9 @@ object StandaloneOpenWhisk extends SLF4JLogging {
     implicit val actorSystem: ActorSystem = ActorSystem("standalone-actor-system")
     implicit val logger: Logging = createLogging(actorSystem, conf)
     implicit val ec: ExecutionContext = actorSystem.dispatcher
+
+    setSysProp("whisk.spi.ContainerFactoryProvider",
+      "org.apache.openwhisk.core.containerpool.wasm.WasmContainerFactoryProvider")
 
     val owPort = conf.port()
     val (dataDir, workDir) = initializeDirs(conf)
