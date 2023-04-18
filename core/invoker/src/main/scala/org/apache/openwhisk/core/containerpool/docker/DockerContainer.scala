@@ -64,7 +64,7 @@ object DockerContainer {
              memory: ByteSize = 256.MB,
              cpuShares: Int = 0,
              environment: Map[String, String] = Map.empty,
-             network: String = "bridge",
+             network: String = "podman",
              dnsServers: Seq[String] = Seq.empty,
              dnsSearch: Seq[String] = Seq.empty,
              dnsOptions: Seq[String] = Seq.empty,

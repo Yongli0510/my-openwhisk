@@ -70,7 +70,7 @@ case class ServiceContainer(port: Int, description: String, name: String)
 
 object StandaloneDockerSupport {
   val prefix = "whisk-"
-  val network = "bridge"
+  val network = "podman"
 
   def checkOrAllocatePort(preferredPort: Int): Int = {
     if (isPortFree(preferredPort)) preferredPort else freePort()
@@ -191,6 +191,7 @@ object StandaloneDockerSupport {
     val executable = loadConfig[String]("whisk.docker.executable").toOption
     val alternatives =
       List(
+        "/usr/bin/podman",
         "/usr/bin/docker",
         "/usr/local/bin/docker",
         """C:\Program Files\Docker\Docker\resources\bin\docker.exe""",

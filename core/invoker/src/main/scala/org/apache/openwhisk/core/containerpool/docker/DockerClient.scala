@@ -88,7 +88,7 @@ class DockerClient(dockerHost: Option[String] = None,
   // Determines how to run docker. Failure to find a Docker binary implies
   // a failure to initialize this instance of DockerClient.
   protected val dockerCmd: Seq[String] = {
-    val alternatives = List("/usr/bin/docker", "/usr/local/bin/docker") ++ executableAlternatives
+    val alternatives = List("/usr/bin/podman", "/usr/bin/docker", "/usr/local/bin/docker") ++ executableAlternatives
 
     val dockerBin = Try {
       alternatives.find(a => Files.isExecutable(Paths.get(a))).get
